@@ -131,36 +131,44 @@ function Query_BDDTable {
 #               Main
 # --------------------------------------------------------
 
-# Détermination du fichier de configuration
-if ($args.Count -gt 0 -and $args[0]) {
-    # Si un paramètre est passé, l'utiliser comme nom du fichier .ini
-    $script:cfgFile = "$PSScriptRoot\$($args[0])"
-} else {
-    # Sinon, utiliser le nom du script avec l'extension .ini
-    $scriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name)
-    $script:cfgFile = "$PSScriptRoot\$scriptName.ini"
-}
+# --------------------------------------------------------
+#               Main
+# --------------------------------------------------------
+	# Chargement des modules
+	$pathmodule = "$PSScriptRoot\Modules"
 
-# Chargement des modules
-. "$PSScriptRoot\Modules\Ini.ps1" > $null 
-. "$PSScriptRoot\Modules\Log.ps1" > $null 
-. "$PSScriptRoot\Modules\Encode.ps1"     > $null 
-. "$PSScriptRoot\Modules\CSV.ps1"        > $null 
-. "$PSScriptRoot\Modules\SendEmail.ps1"  > $null 
-. "$PSScriptRoot\Modules\StrConvert.ps1" > $null  
+	if (Test-Path "$pathmodule\Ini.ps1" -PathType Leaf) {
+		. "$pathmodule\Ini.ps1" > $null 
+	} else {
+		Write-Host "Fichier manquant : $pathmodule\Ini.ps1" -ForegroundColor Red
+		exit (1)
+	}
+	. (GetPathScript "$pathmodule\Log.ps1")        > $null
+	. (GetPathScript "$pathmodule\Encode.ps1")     > $null
+	. (GetPathScript "$pathmodule\StrConvert.ps1") > $null
+	. (GetPathScript "$pathmodule\Csv.ps1")        > $null
+	. (GetPathScript "$pathmodule\SendEmail.ps1")  > $null
 
-LoadIni
+	# Détermination du fichier de configuration
+	if ($args.Count -gt 0 -and $args[0]) {
+		# Si un paramètre est passé, l'utiliser comme nom du fichier .ini
+		$script:cfgFile = "$PSScriptRoot\$($args[0])"
+	} else {
+		# Sinon, utiliser le nom du script avec l'extension .ini
+		$scriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name)
+		$script:cfgFile = "$PSScriptRoot\$scriptName.ini"
+	}
+	LoadIni
 
-SetConsoleToUFT8
+	# Parametrage console en UFT8 (chcp 65001 ou 850) pour carractères accentués
+	SetConsoleToUFT8
 
-Add-Type -AssemblyName System.Web
-
-. "$PSScriptRoot\Modules\SQL - Transaction.ps1" > $null
-if ($script:cfg["start"]["TransacSQL"] -eq "AllInOne" ) {
-	. "$PSScriptRoot\Modules\SQLServer - TransactionAllInOne.ps1" > $null
-} else {
-	. "$PSScriptRoot\Modules\SQLServer - TransactionOneByOne.ps1" > $null
-}
+	. (GetPathScript "$pathmodule\SQL - Transaction.ps1") > $null
+	if ($script:cfg["start"]["TransacSQL"] -eq "AllInOne" ) {
+		. (GetPathScript "$pathmodule\SQLServer - TransactionAllInOne.ps1") > $null
+	} else {
+		. (GetPathScript "$pathmodule\SQLServer - TransactionOneByOne.ps1") > $null
+	}
 
 LOG "MAIN" "Synchronisation BDD ADMIN-Master vers ADMIN-Slave" -CRLF...
 
